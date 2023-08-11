@@ -1,0 +1,8 @@
+torch
+transformers>=4.28.0
+gradio
+accelerate
+xformers
+gradio
+protobuf==3.19.5
+sentencepiece

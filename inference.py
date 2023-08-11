@@ -1,6 +1,18 @@
 import argparse
 import utils
 
+
+# Text coloring: Yellow for user, and green for assistant
+def input_qa():
+    text = input("\033[33m" + "Question: ")
+    print("\033[0m")
+    return text
+
+
+def print_qa(text: str):
+    return print(f"\033[32mAnswer: {text}\033[0m\n\n")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -8,13 +20,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         required=True,
-        help="selected model",
-        choices=[
-            "polyglot_ko",
-            "ko_alpaca",
-            "kullm",
-            "korani-v3",
-        ],
+        help="choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path",
     )
 
     parser.add_argument(
@@ -41,18 +47,24 @@ if __name__ == "__main__":
     parser.add_argument(
         "--use_gradio",
         action="store_true",
-        help="A value that controls the determinism with which the model generates responses. Higher values increase the diversity of responses.",
+        help="Use gradio for chat UI",
     )
 
     args = parser.parse_args()
 
     qa_pipe = utils.get_pipe(args)
-    input_text = input("Question: ")
 
-    while True:
-        if input_text != "exit":
-            print("Answer: {}".format(utils.ask(args, qa_pipe, input_text)))
-            input_text = input("Question: ")
-        else:
-            print("Stop QA...")
-            break
+    # Not use gradio: Use the CMD terminal for chatting
+    if not args.use_gradio:
+        input_text = input_qa()
+
+        while True:
+            if input_text != "대화를 종료합니다.":
+                print_qa(utils.ask(args, qa_pipe, input_text))
+                input_text = input_qa()
+            else:
+                print_qa("대화를 종료합니다...")
+                break
+
+    else:
+        utils.start_gradio(args, qa_pipe)
