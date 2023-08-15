@@ -30,11 +30,11 @@ The selected models are followed:
 
 |model name|base_model|params(B)|dataset for finetuning|
 |:--------:|:--------:|:-------:|:--------------------:|
-|polyglot-ko|-|12.8|-|
-|KoAlpaca|polyglot-ko|12.8|네이버 지식인 베스트|
-|KORani|LLaMA|13|ShareGPT, KoVicuna|
-|KoVicuna|LLaMA|7|ShareGPT|
-|KULLM|polyglot-ko|12.8|GPT4ALL, Dolly, Vicuna|
+|[polyglot-ko](https://github.com/EleutherAI/polyglot)|-|12.8|-|
+|[KoAlpaca](https://github.com/Beomi/KoAlpaca)|polyglot-ko|12.8|네이버 지식인 베스트|
+|[KORani](https://github.com/krafton-ai/KORani)|LLaMA|13|ShareGPT, KoVicuna|
+|[KoVicuna](https://github.com/melodysdreamj/KoVicuna)|LLaMA|7|ShareGPT|
+|[KULLM](https://github.com/nlpai-lab/KULLM)|polyglot-ko|12.8|GPT4ALL, Dolly, Vicuna|
 
 - All models except KoVicuna have options for the number of parameters / base_model, but only one case was selected and configured as a starting point.
 - All models except KoAlpaca were translated from foreign language open datasets into Korean and used for fine-tuning.
