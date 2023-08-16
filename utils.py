@@ -10,6 +10,13 @@ model_path_list = {
     "korani-v3": "KRAFTON/KORani-v3-13B",
 }
 
+class LLM_Model():
+    def __init__(self):
+
+
+
+
+
 
 def get_model_and_tokenizer(args):
     ############### Finetuned models with Korean ###############
