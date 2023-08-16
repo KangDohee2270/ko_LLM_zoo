@@ -1,7 +1,15 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import (
+    AutoTokenizer,
+    AutoModelForCausalLM,
+    pipeline,
+    TextIteratorStreamer,
+    TextStreamer,
+)
+from threading import Thread
 import torch
 import os
 import transformers
+from typing import List
 
 model_path_list = {
     "polyglot-ko": "EleutherAI/polyglot-ko-12.8b",
@@ -10,108 +18,102 @@ model_path_list = {
     "korani-v3": "KRAFTON/KORani-v3-13B",
 }
 
-class LLM_Model():
-    def __init__(self):
 
+class LLM:
+    def __init__(self, args) -> None:
+        if args.model in model_path_list.keys():
+            model_path = model_path_list[args.model]
+        elif not os.path.exists(args.model):
+            raise FileNotFoundError(
+                "The model path is invalid, make sure you are providing the correct path where the model weights are located"
+            )
+        else:
+            model_path = args.model
 
+        # QA format
+        self.input_qa = {
+            "input_with_context": "### 질문: {input}\n\n### 맥락: {context}\n\n### 답변:",
+            "input_wo_context": "### 질문: {input}\n\n### 답변:",
+        }
 
+        # Model Definition
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            device_map="auto",
+            torch_dtype=torch.float16,
+        )
+        self.model.eval()
 
+        # Tokneizer Definition
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        except:
+            # For using LLaMA-based-model
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path, padding_side="right", use_fast=False, legacy=False
+            )
+        self.args = args
 
+    def get_pipe(self):
+        generation_kwargs = dict(
+            max_new_tokens=self.args.max_new_token,
+            temperature=self.args.temp,
+            top_p=self.args.top_p,
+            return_full_text=False,
+            pad_token_id=self.tokenizer.pad_token_id,
+            eos_token_id=self.tokenizer.eos_token_id,
+            do_sample=True,
+            repetition_penalty=1.1,
+        )
+        if self.args.stream:
+            if self.args.use_gradio:
+                self.streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True)
+            else:
+                self.streamer = TextStreamer(self.tokenizer, skip_prompt=True)
+            generation_kwargs["streamer"] = self.streamer
+            del generation_kwargs["return_full_text"]
 
-def get_model_and_tokenizer(args):
-    ############### Finetuned models with Korean ###############
-    if args.model in model_path_list.keys():
-        model_path = model_path_list[args.model]
-    elif not os.path.exists(args.model):
-        raise FileNotFoundError(
-            "The model path is invalid, make sure you are providing the correct path where the model weights are located"
+            self.generation_kwargs = generation_kwargs
+
+        self.pipe = pipeline(
+            "text-generation",
+            model=self.model,
+            tokenizer=self.tokenizer,
+            **generation_kwargs,
+            device_map="auto",
         )
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        device_map="auto",
-        torch_dtype=torch.float16,
-    )
-    model.eval()
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(model_path)
-    except:
-        # For using LLaMA-based-model
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_path, padding_side="right", use_fast=False, legacy=False
-        )
-    args.model, args.tokenizer = model, tokenizer
-    return model, tokenizer
-
-
-def get_pipe(args):
-    model, tokenizer = get_model_and_tokenizer(args)
-    pipe = pipeline(
-        "text-generation", model=model, tokenizer=tokenizer, device_map="auto"
-    )
-    args.generation_kwargs = dict(
-        max_new_tokens=args.max_new_token,
-        temperature=args.temp,
-        top_p=args.top_p,
-        return_full_text=False,
-        pad_token_id=args.tokenizer.pad_token_id,
-        eos_token_id=args.tokenizer.eos_token_id,
-        do_sample=True,
-        repetition_penalty=1.1,
-    )
-    return pipe
-
-
-def ask(args, pipe: transformers.Pipeline, input: str, context: str = "") -> str:
-    input_qa = (
-        f"### 질문: {input}\n\n### 맥락: {context}\n\n### 답변:"
-        if context
-        else f"### 질문: {input}\n\n### 답변:"
-    )
-
-    ans = pipe(input_qa, **args.generation_kwargs)
-
-    return ans[0]["generated_text"].split("###")[0]
-
-
-def start_gradio(args, pipe: transformers.Pipeline):
-    import gradio as gr
-
-    def ask(input, context=""):
+    def formating_input_with_template(self, input: str, context: str = ""):
         input_qa = (
-            f"### 질문: {input}\n\n### 맥락: {context}\n\n### 답변:"
+            self.input_qa["input_with_context"].format(input=input, context=context)
             if context
-            else f"### 질문: {input}\n\n### 답변:"
+            else self.input_qa["input_wo_context"].format(input=input)
         )
 
-        ans = pipe(
-            input_qa,
-            **args.generation_kwargs
-            # num_return_sequences=1,
-            # repetition_penalty=1.2,
-            # bad_words_ids=[
-            #     args.llm_tokenizer.encode(bad_word) for bad_word in bad_words
-            # ],
-        )
-        return ans[0]["generated_text"]
+        return input_qa
 
-    with gr.Blocks() as demo:
-        gr.Markdown(
-            """
-            # Demo-KoLLM
-            """
-        )
+    def ask(self, input: str, context: str = "") -> str:
+        input_qa = self.formating_input_with_template(input, context)
+        ans = self.pipe(input_qa)
 
-        chatbot = gr.Chatbot()
-        msg = gr.Textbox(label="메세지를 입력하세요")
-        clear = gr.ClearButton([msg, chatbot])
+        return ans[0]["generated_text"].split("###")[0]
 
-        def respond(message, chat_history):
-            bot_message = ask(message)
+    def ask_with_streamer(self, input: str):
+        input_qa = self.formating_input_with_template(input)
+        inputs = self.tokenizer(
+            [input_qa], return_tensors="pt", return_token_type_ids=False
+        ).to("cuda")
 
-            chat_history.append((message, bot_message))
-            return "", chat_history
+        self.generation_kwargs["input_ids"] = inputs.input_ids
+        self.thread = Thread(target=self.model.generate, kwargs=self.generation_kwargs)
+        self.thread.start()
 
-        msg.submit(respond, [msg, chatbot], [msg, chatbot])
+        for new_text in self.streamer:
+            # print(new_text)
+            if "<|endoftext|>" in new_text:
+                new_text = new_text.rstrip("<|endoftext|>")
 
-    demo.launch(share=True)
+            yield new_text
+            # time.sleep(0.5)
+            # print(history)
+            # yield history

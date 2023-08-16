@@ -1,5 +1,7 @@
 import argparse
-import utils
+from utils import LLM
+import gradio as gr
+import transformers
 
 
 # Text coloring: Yellow for user, and green for assistant
@@ -9,8 +11,59 @@ def input_qa():
     return text
 
 
-def print_qa(text: str):
-    return print(f"\033[32mAnswer: {text}\033[0m\n\n")
+def print_qa(text: str, stream=False):
+    if not stream:
+        print(f"\033[32mAnswer: {text}\033[0m\n\n", end="")
+    else:
+        print("\033[32mAnswer: ")
+        input_qa = llm.formating_input_with_template(text)
+        inputs = llm.tokenizer(
+            [input_qa], return_tensors="pt", return_token_type_ids=False
+        ).to("cuda")
+        _ = llm.model.generate(**inputs, **llm.generation_kwargs)
+        print("\033[0m\n\n")
+
+
+def gradio(llm: LLM, stream: bool):
+    with gr.Blocks() as demo:
+        gr.Markdown(
+            """
+                # Demo-KoLLM
+            """
+        )
+
+        chatbot = gr.Chatbot()
+        msg = gr.Textbox(label="메세지를 입력하세요")
+        clear = gr.ClearButton([msg, chatbot])
+
+        def user(user_message, history):
+            return gr.update(value="", interactive=False), history + [
+                [user_message, None]
+            ]
+
+        def respond(message, chat_history):
+            bot_message = llm.ask(message)
+
+            chat_history.append((message, bot_message))
+            return "", chat_history
+
+        def ask_with_streamer_in_gradio(history):
+            input = history[-1][0]
+            history[-1][1] = ""
+            for new_text in llm.ask_with_streamer(input):
+                history[-1][1] += new_text
+                yield history
+
+        if stream:
+            response = msg.submit(
+                user, [msg, chatbot], [msg, chatbot], queue=False
+            ).then(ask_with_streamer_in_gradio, chatbot, chatbot)
+            response.then(lambda: gr.update(interactive=True), None, [msg], queue=False)
+        else:
+            msg.submit(respond, [msg, chatbot], [msg, chatbot])
+
+    demo.queue()
+    demo.launch(share=True)
 
 
 if __name__ == "__main__":
@@ -50,21 +103,37 @@ if __name__ == "__main__":
         help="Use gradio for chat UI",
     )
 
-    args = parser.parse_args()
+    parser.add_argument(
+        "--stream",
+        action="store_true",
+        help="Use streaming for chat",
+    )
 
-    qa_pipe = utils.get_pipe(args)
+    args = parser.parse_args()
+    print(args)
+
+    llm = LLM(args)
+
+    qa_pipe = llm.get_pipe()
 
     # Not use gradio: Use the CMD terminal for chatting
     if not args.use_gradio:
-        input_text = input_qa()
+        try:
+            input_text = input_qa()
 
-        while True:
-            if input_text != "대화를 종료합니다.":
-                print_qa(utils.ask(args, qa_pipe, input_text))
-                input_text = input_qa()
-            else:
-                print_qa("대화를 종료합니다...")
-                break
+            while True:
+                if input_text != "대화를 종료합니다.":
+                    if not args.stream:
+                        print_qa(llm.ask(input_text))
+                    else:
+                        print_qa(input_text, stream=True)
+                    input_text = input_qa()
+                else:
+                    print_qa("대화를 종료합니다...")
+                    break
+        # To prevent the problem that text coloring is maintained even after process termination
+        except KeyboardInterrupt:
+            print("\033[0m\nKeyboardInterrupt")
 
     else:
-        utils.start_gradio(args, qa_pipe)
+        gradio(llm, stream=args.stream)
