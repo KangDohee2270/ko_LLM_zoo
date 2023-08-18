@@ -73,7 +73,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         required=True,
-        help="choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path",
+        help="choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3, kovicuna, kogpt] or use saved path",
     )
 
     parser.add_argument(

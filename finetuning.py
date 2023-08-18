@@ -9,7 +9,7 @@
 
 import os
 import sys
-from typing import List, Optional
+from typing import Dict, Optional, Sequence
 
 import torch
 from datasets import load_dataset
@@ -28,15 +28,10 @@ from transformers import (
     BitsAndBytesConfig,
     TrainingArguments,
     Trainer,
-    DataCollatorForLanguageModeling,
+    DataCollatorForSeq2Seq,
 )
 
-prompt = {
-    "description": "Alpaca-LoRA에서 사용하는 템플릿입니다.",
-    "prompt_input": "아래는 작업을 설명하는 명령어와 추가 컨텍스트를 제공하는 입력이 짝을 이루는 예제입니다. 요청을 적절히 완료하는 응답을 작성하세요.\n\n### 명령어:\n{instruction}\n\n### 입력:\n{input}\n\n### 응답:\n",
-    "prompt_no_input": "아래는 작업을 설명하는 명령어입니다. 요청을 적절히 완료하는 응답을 작성하세요.\n\n### 명령어:\n{instruction}\n\n### 응답:\n",
-    "response_split": "### 응답:",
-}
+from utils.data_formatting import *
 
 
 def train(args):
@@ -59,16 +54,18 @@ def train(args):
     gradient_accumulation_steps = args.batch_size // per_device_train_batch_size
 
     # Set resume from checkpoint
-    if resume_from_checkpoint:
+    if args.resume_from_checkpoint:
         # Check the available weights and load them
         checkpoint_name = os.path.join(
-            resume_from_checkpoint, "pytorch_model.bin"
+            args.resume_from_checkpoint, "pytorch_model.bin"
         )  # Full checkpoint
         if not os.path.exists(checkpoint_name):
             checkpoint_name = os.path.join(
-                resume_from_checkpoint, "adapter_model.bin"
+                args.resume_from_checkpoint, "adapter_model.bin"
             )  # only LoRA model - LoRA config above has to fit
-            resume_from_checkpoint = False  # So the trainer won't try loading its state
+            args.resume_from_checkpoint = (
+                False  # So the trainer won't try loading its state
+            )
         # The two files above have a different name depending on how they were saved, but are actually the same.
         if os.path.exists(checkpoint_name):
             print(f"Restarting from {checkpoint_name}")
@@ -79,43 +76,39 @@ def train(args):
 
     # Set model and tokenizer
     training_kwargs = dict(
+        pretrained_model_name_or_path=args.base_model,
         torch_dtype=torch.float16,
         device_map="auto",
     )
-    if args.finetuning_method:
-        if args.finetuning_method not in ["lora", "qlora"]:
-            raise Exception(
-                "Unknown finetuning method. You must choose one of [lora, qlora]"
-            )
+    if args.finetuning_method not in ["lora", "qlora"]:
+        raise Exception(
+            "Unknown finetuning method. You must choose one of [lora, qlora]"
+        )
 
-        else:
-            config = LoraConfig(
-                r=args.lora_r,
-                lora_alpha=args.lora_alpha,
-                target_modules=args.lora_target_modules,
-                lora_dropout=args.lora_dropout,
-                bias="none",
-                task_type="CAUSAL_LM",
-            )
-            if args.finetuning_method == "lora":
-                training_kwargs["load_in_8bit"] = True
+    config = LoraConfig(
+        r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        target_modules=args.lora_target_modules,
+        lora_dropout=args.lora_dropout,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+    if args.finetuning_method == "lora":
+        training_kwargs["load_in_8bit"] = True
 
-            elif args.finetuning_method == "qlora":
-                bnb_config = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_quant_type="nf4",
-                    bnb_4bit_compute_dtype=torch.float16,
-                    bnb_4bit_use_double_quant=True,
-                )
-                training_kwargs["quantization_config"] = bnb_config
+    elif args.finetuning_method == "qlora":
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+        )
+        training_kwargs["quantization_config"] = bnb_config
 
-            model = AutoModelForCausalLM(args.base_model, **training_kwargs)
-            model = prepare_model_for_kbit_training(model)
-            model = get_peft_model(model, config)
-
-    else:
-        model = AutoModelForCausalLM(args.base_model, **training_kwargs)
-
+    model = AutoModelForCausalLM.from_pretrained(**training_kwargs)
+    model = prepare_model_for_kbit_training(model)
+    model = get_peft_model(model, config)
+    model.config.use_cache = False
     if num_device > 1:
         # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
         model.is_parallelizable = True
@@ -146,15 +139,7 @@ def train(args):
         return result
 
     def generate_and_tokenize_prompt(data_point):
-        user_prompt = (
-            prompt["prompt_input"].format(
-                instruction=data_point["instruction"], input=data_point["input"]
-            )
-            if input
-            else prompt["prompt_no_input"].format(instruction=data_point["instruction"])
-        )
-
-        full_prompt = user_prompt + data_point["output"]
+        user_prompt, full_prompt = get_alpaca_format(data_point)
 
         tokenized_full_prompt = tokenize(full_prompt)
         tokenized_user_prompt = tokenize(user_prompt, add_eos_token=False)
@@ -168,13 +153,25 @@ def train(args):
         ]  # could be sped up, probably
         return tokenized_full_prompt
 
-    if args.data_path.endswith(".json") or args.data_path.endswith(".jsonl"):
-        data = load_dataset("json", data_files=args.data_path)
+    dataset_list = {
+        "koalpaca": "beomi/KoAlpaca-v1.1a",
+        "kullm": "nlpai-lab/kullm-v2",
+        "guanaco-ko": "nlpai-lab/openassistant-guanaco-ko",
+    }
+    if args.data.endswith(".json") or args.data.endswith(".jsonl"):
+        data = load_dataset("json", data_files=args.data)
     else:
-        data = load_dataset(args.data_path)
+        if args.data in dataset_list:
+            data = load_dataset(dataset_list[args.data])
+        elif args.data == "junelee/sharegpt_deepl_ko":
+            raise Exception(
+                "'sharegpt deepl ko' cannot be loaded directly from huggingface. Visit the link(https://huggingface.co/datasets/junelee/sharegpt_deepl_ko), download the json file you want to use, and enter the path of the file."
+            )
+        else:
+            data = load_dataset(args.data)
 
     if args.val_set_size > 0:
-        train_val = data.train_test_split(
+        train_val = data["train"].train_test_split(
             test_size=args.val_set_size, shuffle=True, seed=42
         )
         train_data = train_val["train"].shuffle().map(generate_and_tokenize_prompt)
@@ -190,6 +187,8 @@ def train(args):
         gradient_accumulation_steps=gradient_accumulation_steps,
         learning_rate=args.learning_rate,
         logging_steps=1,
+        fp16=True,
+        optim="adamw_torch",
         evaluation_strategy="steps" if args.val_set_size > 0 else "no",
         save_strategy="steps",
         eval_steps=args.eval_steps if args.val_set_size > 0 else None,
@@ -206,7 +205,7 @@ def train(args):
         # so only a fraction of the activations need to be re-computed for the gradients.
         gradient_checkpointing=True,
         # Set a lower batch size than during training to avoid memory usage spikes during validation.
-        per_device_eval_batch_size=args.micro_batch_size // 4,
+        per_device_eval_batch_size=per_device_train_batch_size // 4,
         eval_accumulation_steps=args.batch_size // 4,
     )
     trainer = Trainer(
@@ -214,8 +213,8 @@ def train(args):
         train_dataset=train_data,
         eval_dataset=val_data,
         args=training_args,
-        data_collator=DataCollatorForLanguageModeling(
-            tokenizer, mlm=False, pad_to_multiple_of=8, return_tensors="pt"
+        data_collator=DataCollatorForSeq2Seq(
+            tokenizer, padding=True, pad_to_multiple_of=8, return_tensors="pt"
         ),
     )
 
@@ -240,13 +239,13 @@ if __name__ == "__main__":
         help="choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path. The default is 'kullm'",
     )
     parser.add_argument(
-        "--data_path",
+        "--data",
         type=str,
         required=True,
         help="set your dataset path. the dataset must contain the keys: instruction, input and output",
     )
     parser.add_argument(
-        "--args.output_dir",
+        "--output_dir",
         type=str,
         default="./save_checkpoints",
         help="save path for trained model weights",
@@ -262,7 +261,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=64,
+        default=8,
     )
     parser.add_argument(
         "--num_epochs",
@@ -295,7 +294,7 @@ if __name__ == "__main__":
         default=2000,
     )
     parser.add_argument(
-        "--eval_step",
+        "--eval_steps",
         type=int,
         default=500,
         help="Step unit to perform evaluation and checkpoint storage",
@@ -305,7 +304,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--finetuning_method",
         type=str,
-        default=None,
+        default="lora",
         help="Finetuning method. choose one of [lora, qlora]",
     )
     parser.add_argument(
@@ -342,15 +341,24 @@ if __name__ == "__main__":
         default=False,
         help="Whether or not to group together samples of roughly the same length in the training dataset. If True, faster, but produces an odd training loss curve",
     )
+    parser.add_argument(
+        "--padding_side",
+        type=str,
+        default="left",
+    )
 
     # wandb params
     parser.add_argument("--wandb_project", type=str, default="")
+    parser.add_argument("--wandb_run_name", type=str, default="")
     parser.add_argument(
-        "--wandb_run_name",
+        "--wandb_log_model", type=str, default="false", help="options: false | true"
+    )
+    parser.add_argument(
+        "--wandb_watch",
         type=str,
         default="gradients",
         help="Choose one of [false, gradients, all]. 'all' option may occur error: RuntimeError: 'histogram_cpu' not implemented for 'Char'",
     )
 
     args = parser.parse_args()
-    train()
+    train(args)
