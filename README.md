@@ -20,6 +20,90 @@ python inference.py --model [model_name]
 ```
 You can chat with the model in the terminal.
 
+<details>
+<summary>Configuration</summary>
+<div markdown="1">
+
+```
+usage: inference.py [-h] --model MODEL [--max_new_token MAX_NEW_TOKEN] [--temp TEMP] [--top_p TOP_P] [--use_gradio] [--stream]
+
+options:
+  -h, --help            show this help message and exit
+  --model MODEL         choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path
+  --max_new_token MAX_NEW_TOKEN
+                        The maximum numbers of tokens to generate, ignoring the number of tokens in the prompt
+  --temp TEMP           A value used to modulate the next token probabilities. Higher values increase randomness.
+  --top_p TOP_P         A value that controls the determinism with which the model generates responses. Higher values increase the diversity of responses.
+  --use_gradio          Use gradio for chat UI
+  --stream              Use streaming for chat
+```
+
+</div>
+</details>
+
+### Finetuning
+Run the following command to test the selected model:
+
+```
+python finetuning.py --base_model [model_name] --data [dataset_for_finetuning]
+```
+You can fine-tune the base_model with your own dataset or an open dataset accessible from huggingface.
+
+To create your own dataset, each sample in the dataset must follow the alpaca style below:
+```
+{'instruction': '...',
+ 'input': '', # Additional context. 
+ 'output': '...'}
+```
+
+<details>
+<summary>Configuration</summary>
+<div markdown="1">
+
+```
+usage: finetuning.py [-h] [--base_model BASE_MODEL] --data_path DATA_PATH [--args.output_dir ARGS.OUTPUT_DIR] [--use_gpu USE_GPU] [--batch_size BATCH_SIZE]
+                     [--num_epochs NUM_EPOCHS] [--learning_rate LEARNING_RATE] [--cutoff_len CUTOFF_LEN] [--resume_from_checkpoint RESUME_FROM_CHECKPOINT]
+                     [--val_set_size VAL_SET_SIZE] [--eval_step EVAL_STEP] [--finetuning_method FINETUNING_METHOD] [--lora_r LORA_R] [--lora_alpha LORA_ALPHA]
+                     [--lora_dropout LORA_DROPOUT] [--lora_target_modules LORA_TARGET_MODULES] [--train_on_inputs TRAIN_ON_INPUTS] [--group_by_length GROUP_BY_LENGTH]
+                     [--wandb_project WANDB_PROJECT] [--wandb_run_name WANDB_RUN_NAME]
+
+options:
+  -h, --help            show this help message and exit
+  --base_model BASE_MODEL
+                        choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path. The default is 'kullm'
+  --data_path DATA_PATH
+                        set your dataset path. the dataset must contain the keys: instruction, input and output
+  --args.output_dir ARGS.OUTPUT_DIR
+                        save path for trained model weights
+  --use_gpu USE_GPU     The number of GPUs to use. If you want to use 0 and 1, enter '0, 1'
+  --batch_size BATCH_SIZE
+  --num_epochs NUM_EPOCHS
+  --learning_rate LEARNING_RATE
+  --cutoff_len CUTOFF_LEN
+                        The maximum number of input tokens
+  --resume_from_checkpoint RESUME_FROM_CHECKPOINT
+                        Either training checkpoint or final adapter
+  --val_set_size VAL_SET_SIZE
+  --eval_step EVAL_STEP
+                        Step unit to perform evaluation and checkpoint storage
+  --finetuning_method FINETUNING_METHOD
+                        Finetuning method. choose one of [lora, qlora]
+  --lora_r LORA_R
+  --lora_alpha LORA_ALPHA
+  --lora_dropout LORA_DROPOUT
+  --lora_target_modules LORA_TARGET_MODULES
+  --train_on_inputs TRAIN_ON_INPUTS
+                        If False, masks out inputs in loss
+  --group_by_length GROUP_BY_LENGTH
+                        Whether or not to group together samples of roughly the same length in the training dataset. If True, faster, but produces an odd training loss curve
+  --wandb_project WANDB_PROJECT
+  --wandb_run_name WANDB_RUN_NAME
+                        Choose one of [false, gradients, all]. 'all' option may occur error: RuntimeError: 'histogram_cpu' not implemented for 'Char'
+```
+
+</div>
+</details>
+
 ## Models
 ### Overview of existing models
 Models were selected based on the following criteria
@@ -30,12 +114,14 @@ The selected models are followed:
 
 |model name|base_model|params(B)|dataset for finetuning|
 |:--------:|:--------:|:-------:|:--------------------:|
-|[polyglot-ko](https://github.com/EleutherAI/polyglot)|-|12.8|-|
-|[KoAlpaca](https://github.com/Beomi/KoAlpaca)|polyglot-ko|12.8|네이버 지식인 베스트|
-|[KORani](https://github.com/krafton-ai/KORani)|LLaMA|13|ShareGPT, KoVicuna|
-|[KoVicuna](https://github.com/melodysdreamj/KoVicuna)|LLaMA|7|ShareGPT|
-|[KULLM](https://github.com/nlpai-lab/KULLM)|polyglot-ko|12.8|GPT4ALL, Dolly, Vicuna|
+|[polyglot-ko](https://github.com/EleutherAI/polyglot)[🤗](https://huggingface.co/EleutherAI/polyglot-ko-12.8b)|-|12.8|-|
+|[KoAlpaca](https://github.com/Beomi/KoAlpaca)[🤗](https://huggingface.co/beomi/KoAlpaca-Polyglot-12.8B)|polyglot-ko|12.8|네이버 지식인 베스트|
+|[KORani](https://github.com/krafton-ai/KORani)[🤗](https://huggingface.co/KRAFTON/KORani-v3-13B)|LLaMA|13|ShareGPT, KoVicuna|
+|[KoVicuna](https://github.com/melodysdreamj/KoVicuna)[🤗](https://huggingface.co/junelee/ko_vicuna_7b)|LLaMA|7|ShareGPT|
+|[KULLM](https://github.com/nlpai-lab/KULLM)[🤗](https://huggingface.co/nlpai-lab/kullm-polyglot-12.8b-v2)|polyglot-ko|12.8|GPT4ALL, Dolly, Vicuna|
+|[KoGPT](https://github.com/kakaobrain/kogpt)[🤗](https://huggingface.co/kakaobrain/kogpt)|-|6|ryan-dataset|
 
 - All models except KoVicuna have options for the number of parameters / base_model, but only one case was selected and configured as a starting point.
+The models in the table above are set as default, and other sizes can be loaded by entering the huggingface path directly.
 - All models except KoAlpaca were translated from foreign language open datasets into Korean and used for fine-tuning.
 
