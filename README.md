@@ -110,6 +110,7 @@ Models were selected based on the following criteria
 
 - Models with more than 50 stars on github
 - Models with easily accessible weights on huggingface
+
 The selected models are followed:
 
 |model name|base_model|params(B)|dataset for finetuning|
