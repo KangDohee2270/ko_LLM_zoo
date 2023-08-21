@@ -104,6 +104,15 @@ options:
 </div>
 </details>
 
+### Quantization
+Run the following command to apply post-training quantization (PTQ) to the selected model:
+
+```
+python quantization.py --base_model [model_name] --output_dir [quantized_model_path]
+```
+
+Currently, the quantization code only supports [GPTQ](https://arxiv.org/abs/2210.17323).
+
 ## Models
 ### Overview of existing models
 Models were selected based on the following criteria
