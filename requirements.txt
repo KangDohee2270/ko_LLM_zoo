@@ -13,3 +13,7 @@ datasets
 peft
 bitsandbytes
 scipy
+wandb
+
+#for quantization
+auto-gptq[triton]

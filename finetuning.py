@@ -37,6 +37,7 @@ from utils.data_formatting import *
 def train(args):
     # wandb setting
     # Check if parameter passed or if set within environ
+    print(len(args.wandb_project))
     use_wandb = len(args.wandb_project) > 0 or (
         "WANDB_PROJECT" in os.environ and len(os.environ["WANDB_PROJECT"]) > 0
     )
@@ -75,11 +76,41 @@ def train(args):
             print(f"Checkpoint {checkpoint_name} not found")
 
     # Set model and tokenizer
-    training_kwargs = dict(
-        pretrained_model_name_or_path=args.base_model,
-        torch_dtype=torch.float16,
-        device_map="auto",
-    )
+
+    model_path_list = {
+        "polyglot-ko": "EleutherAI/polyglot-ko-12.8b",
+        "ko-alpaca": "beomi/KoAlpaca-Polyglot-12.8B",
+        "kullm": "nlpai-lab/kullm-polyglot-12.8b-v2",
+        "korani-v3": "KRAFTON/KORani-v3-13B",
+        "kovicuna": "junelee/ko_vicuna_7b",
+        "kogpt": {
+            "pretrained_model_name_or_path": "kakaobrain/kogpt",
+            "revision": "KoGPT6B-ryan1.5b-float16",
+        },
+    }
+
+    if args.base_model in model_path_list.keys():
+        model_path = model_path_list[args.base_model]
+    elif not os.path.exists(args.base_model):
+        raise FileNotFoundError(
+            "The model path is invalid, make sure you are providing the correct path where the model weights are located"
+        )
+    else:
+        model_path = args.base_model
+    print(model_path)
+
+    if type(model_path) != dict:
+        training_kwargs = dict(
+            pretrained_model_name_or_path=model_path,
+            torch_dtype=torch.float16,
+            device_map="auto",
+        )
+    else:
+        training_kwargs = dict(
+            **model_path,
+            torch_dtype=torch.float16,
+            device_map="auto",
+        )
     if args.finetuning_method not in ["lora", "qlora"]:
         raise Exception(
             "Unknown finetuning method. You must choose one of [lora, qlora]"
@@ -114,7 +145,16 @@ def train(args):
         model.is_parallelizable = True
         model.model_parallel = True
 
-    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+    try:
+        if type(model_path) != dict:
+            tokenizer = AutoTokenizer.from_pretrained(model_path)
+        else:
+            tokenizer = AutoTokenizer.from_pretrained(**model_path)
+    except:
+        # For using LLaMA-based-model
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path, use_fast=False, legacy=False
+        )
     tokenizer.padding_side = args.padding_side
 
     # Set dataset (tokenization and train-test split)
@@ -322,10 +362,12 @@ if __name__ == "__main__":
         type=float,
         default=0.05,
     )
+
+    ####if you use KoGPT, set ["q_proj", "k_proj", "v_proj"]
     parser.add_argument(
         "--lora_target_modules",
         type=list,
-        default=["query_key_value", "xxx"],
+        default=["query_key_value"],
     )
 
     # additional hyperparams
