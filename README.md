@@ -29,7 +29,7 @@ usage: inference.py [-h] --model MODEL [--max_new_token MAX_NEW_TOKEN] [--temp T
 
 options:
   -h, --help            show this help message and exit
-  --model MODEL         choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path
+  --model MODEL         choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3, kovicuna, kogpt] or use saved path
   --max_new_token MAX_NEW_TOKEN
                         The maximum numbers of tokens to generate, ignoring the number of tokens in the prompt
   --temp TEMP           A value used to modulate the next token probabilities. Higher values increase randomness.
@@ -70,10 +70,10 @@ usage: finetuning.py [-h] [--base_model BASE_MODEL] --data_path DATA_PATH [--arg
 options:
   -h, --help            show this help message and exit
   --base_model BASE_MODEL
-                        choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path. The default is 'kullm'
+                        choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3, kovicuna, kogpt] or use saved path. The default is 'kullm'
   --data_path DATA_PATH
                         set your dataset path. the dataset must contain the keys: instruction, input and output
-  --args.output_dir ARGS.OUTPUT_DIR
+  --output_dir OUTPUT_DIR
                         save path for trained model weights
   --use_gpu USE_GPU     The number of GPUs to use. If you want to use 0 and 1, enter '0, 1'
   --batch_size BATCH_SIZE
