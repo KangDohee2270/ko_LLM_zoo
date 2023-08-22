@@ -26,6 +26,7 @@ You can chat with the model in the terminal.
 
 ```
 usage: inference.py [-h] --model MODEL [--max_new_token MAX_NEW_TOKEN] [--temp TEMP] [--top_p TOP_P] [--use_gradio] [--stream]
+                    [--use_gpu USE_GPU] [--quant {gptq,int8,fp4,nf4,nf4-dq,np4-dq-comp_bf16}] [--gptq_weights GPTQ_WEIGHTS]
 
 options:
   -h, --help            show this help message and exit
@@ -33,9 +34,17 @@ options:
   --max_new_token MAX_NEW_TOKEN
                         The maximum numbers of tokens to generate, ignoring the number of tokens in the prompt
   --temp TEMP           A value used to modulate the next token probabilities. Higher values increase randomness.
-  --top_p TOP_P         A value that controls the determinism with which the model generates responses. Higher values increase the diversity of responses.
+  --top_p TOP_P         A value that controls the determinism with which the model generates responses. Higher values increase the
+                        diversity of responses.
   --use_gradio          Use gradio for chat UI
   --stream              Use streaming for chat
+  --use_gpu USE_GPU     The number of GPUs to use. If you want to use 0 and 1, enter '0, 1'
+  --quant {gptq,int8,fp4,nf4,nf4-dq,np4-dq-comp_bf16}
+                        Chosse quantization method. Note that the 'gptq' option must be preceded by quantization.py and use the stored
+                        weights
+  --gptq_weights GPTQ_WEIGHTS
+                        The path where the model weight quantized via GPTQ is stored. If not specified, the gptq model will not be
+                        available.
 ```
 
 </div>
