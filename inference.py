@@ -1,7 +1,6 @@
 import argparse
-from utils import LLM
+from utils.get_model import LLM
 import gradio as gr
-import transformers
 
 
 # Text coloring: Yellow for user, and green for assistant
@@ -107,6 +106,26 @@ if __name__ == "__main__":
         "--stream",
         action="store_true",
         help="Use streaming for chat",
+    )
+    parser.add_argument(
+        "--use_gpu",
+        type=str,
+        default="0",
+        help="The number of GPUs to use. If you want to use 0 and 1, enter '0, 1'",
+    )
+    parser.add_argument(
+        "--quant",
+        type=str,
+        default=None,
+        choices=["gptq", "int8", "fp4", "nf4", "nf4-dq", "nf4-dq-comp_bf16"],
+        help="Chosse quantization method. Note that the 'gptq' option must be preceded by quantization.py and use the stored weights",
+    )
+
+    parser.add_argument(
+        "--gptq_weights",
+        type=str,
+        default=None,
+        help="The path where the model weight quantized via GPTQ is stored. If not specified, the gptq model will not be available.",
     )
 
     args = parser.parse_args()
