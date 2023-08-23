@@ -144,3 +144,14 @@ The selected models are followed:
 The models in the table above are set as default, and other sizes can be loaded by entering the huggingface path directly.
 - All models except KoAlpaca were translated from foreign language open datasets into Korean and used for fine-tuning.
 
+## Supported benchmarks
+- [KLUE](https://klue-benchmark.com/)
+- [Ko-translation](https://huggingface.co/datasets/Moo/korean-parallel-corpora)
+- [KoBEST](https://huggingface.co/datasets/skt/kobest_v1)
+- [Korean-hate-speech](https://github.com/kocohub/korean-hate-speech)
+- [KOLD](https://github.com/boychaboy/KOLD)
+- [KorQuAD](https://korquad.github.io/KorQuad%201.0/)
+- [Korean-unsmile-dataset](https://github.com/smilegate-ai/korean_unsmile_dataset)
+- [KoSBi](https://github.com/naver-ai/korean-safety-benchmarks)
+- [Korean legal precedent corpus](https://github.com/lbox-kr/lbox-open)
+- [NSMC](https://github.com/e9t/nsmc)
