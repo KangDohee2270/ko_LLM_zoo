@@ -43,7 +43,11 @@ class LLM:
         }
 
         model_kwargs = dict(device_map="auto")
-
+        if args.evaluation:
+            eval_kwargs = dict(
+                batch_size=args.batch_size, max_batch_size=args.max_batch_size
+            )
+            model_kwargs.update()
         #################
         # Quantization methods for efficient inference
 
