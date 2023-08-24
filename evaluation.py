@@ -2,9 +2,10 @@ import argparse
 import json
 import os
 
-from utils.get_model import LLM
-import utils.eval_utils as eval_utils
-import utils.eval_tasks as tasks
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
+import eval_utils.eval_utils as eval_utils
+import eval_utils.tasks as tasks
+from eval_utils import evaluator
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -45,10 +46,10 @@ if __name__ == "__main__":
     parser.add_argument("--description_dict_path", default=None)
     parser.add_argument("--check_integrity", action="store_true")
     parser.add_argument("--write_out", action="store_true", default=False)
-    parser.add_argument("--output_base_path", type=str, default=None)
-
+    parser.add_argument("--output_path", type=str, default=None)
     args = parser.parse_args()
     args.evaluation = True
+    args.quant = None
     print(args)
 
     if args.limit:
@@ -67,7 +68,7 @@ if __name__ == "__main__":
             description_dict = json.load(f)
 
     args.description_dict = description_dict
-    llm = LLM(args)
+    results = evaluator.simple_evaluate(args)
 
     dumped = json.dumps(results, indent=2)
     print(dumped)
