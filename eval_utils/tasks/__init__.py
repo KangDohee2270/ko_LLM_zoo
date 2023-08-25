@@ -8,9 +8,8 @@
 
 
 from pprint import pprint
-from typing import List, Union
+from typing import List
 
-import eval_utils.base as base
 from . import klue
 from . import ko_translation
 from . import kobest
@@ -48,8 +47,6 @@ TASK_REGISTRY = {
     "kosbi": kosbi.KoSBi,
 }
 
-
-ALL_TASKS = sorted(list(TASK_REGISTRY))
 
 _EXAMPLE_JSON_PATH = "split:key:/absolute/path/to/data.json"
 
@@ -107,9 +104,7 @@ def get_task_name_from_object(task_object):
     )
 
 
-def get_task_dict(task_name_list: List[Union[str, base.Task]]):
-    # TODO: must be fixed
-    task_name_list = [task_name_list]
+def get_task_dict(task_name_list: List[str]):
     task_name_dict = {
         task_name: get_task(task_name)()
         for task_name in task_name_list

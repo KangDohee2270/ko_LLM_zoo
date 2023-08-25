@@ -332,7 +332,7 @@ class LegalSummarization(Task):
             language description, as well as the few shot examples, and the question
             part of the document for `doc`.
         """
-        return rf.greedy_until(ctx, ["\n"])
+        return rf.greedy_until(ctx, {"until": ["\n"]})
 
     def process_results(self, doc, results):
         ref_pred = (doc["tgt"], results)

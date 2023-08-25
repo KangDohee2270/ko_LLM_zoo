@@ -88,7 +88,8 @@ class Korquad(Task):
             language description, as well as the few shot examples, and the question
             part of the document for `doc`.
         """
-        continuation = rf.greedy_until(ctx, ["\n"])
+        # I'm not sure it({"until": ["\n"]}) is right
+        continuation = rf.greedy_until(ctx, {"until": ["\n"]})
         return continuation
 
     def process_results(self, doc, results):

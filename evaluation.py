@@ -1,11 +1,33 @@
+import os
 import argparse
 import json
-import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
-import eval_utils.eval_utils as eval_utils
-import eval_utils.tasks as tasks
-from eval_utils import evaluator
+ALL_TASKS = [
+    "kold_level_a",
+    "kold_level_b",
+    "klue_sts",
+    "klue_ynat",
+    "klue_nli",
+    "klue_mrc",
+    "nsmc",
+    "korquad",
+    "kobest_boolq",
+    "kobest_copa",
+    "kobest_wic",
+    "kobest_hellaswag",
+    "kobest_sentineg",
+    "ko_en_translation",
+    "en_ko_translation",
+    "korunsmile",
+    "kohatespeech",
+    "kohatespeech_gen_bias",
+    "kohatespeech_apeach",
+    "kolegal_legalcase",
+    "kolegal_civilcase",
+    "kolegal_criminalcase",
+    "kosbi",
+]
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -16,16 +38,14 @@ if __name__ == "__main__":
         required=True,
         help="choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3, kovicuna, kogpt] or use saved path",
     )
-    parser.add_argument(
-        "--tasks", default=None, choices=eval_utils.MultiChoice(tasks.ALL_TASKS)
-    )
+    parser.add_argument("--tasks", default=None, choices=ALL_TASKS, nargs="+")
     parser.add_argument("--provide_description", action="store_true")
     parser.add_argument("--num_fewshot", type=int, default=0)
     parser.add_argument("--batch_size", type=str, default=None)
     parser.add_argument(
         "--max_batch_size",
         type=int,
-        default=None,
+        default=512,
         help="Maximal batch size to try with --batch_size auto",
     )
     parser.add_argument(
@@ -48,18 +68,21 @@ if __name__ == "__main__":
     parser.add_argument("--write_out", action="store_true", default=False)
     parser.add_argument("--output_path", type=str, default=None)
     args = parser.parse_args()
+    # Pre-setting
     args.evaluation = True
     args.quant = None
-    print(args)
+    # Set which GPU to use
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.use_gpu
 
     if args.limit:
         print(
             "WARNING: --limit SHOULD ONLY BE USED FOR TESTING. REAL METRICS SHOULD NOT BE COMPUTED USING LIMIT."
         )
-    if args.tasks is None:
-        task_names = tasks.ALL_TASKS
-    else:
-        task_names = eval_utils.pattern_match(args.tasks.split(","), tasks.ALL_TASKS)
+
+    import eval_utils.eval_utils as eval_utils
+    import eval_utils.evaluator as evaluator
+
+    task_names = args.tasks if args.tasks != None else ALL_TASKS
     print(f"Selected Tasks: {task_names}")
 
     description_dict = {}
@@ -80,7 +103,7 @@ if __name__ == "__main__":
 
     batch_sizes = ",".join(map(str, results["config"]["batch_sizes"]))
     print(
-        f"{args.model} ({args.model_args}), limit: {args.limit}, provide_description: {args.provide_description}, "
+        f"{args.model}, limit: {args.limit}, provide_description: {args.provide_description}, "
         f"num_fewshot: {args.num_fewshot}, batch_size: {args.batch_size}{f' ({batch_sizes})' if batch_sizes else ''}"
     )
     print(evaluator.make_table(results))

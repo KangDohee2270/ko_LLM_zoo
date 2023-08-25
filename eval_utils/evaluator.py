@@ -2,14 +2,13 @@ import collections
 import itertools
 import random
 
-from utils.get_model import LLM_for_eval as LLM
+from utils.get_model_eval import LLM
 import eval_utils.metrics as eval_metrics
 import eval_utils.tasks as eval_tasks
 import eval_utils.base as eval_base
 from eval_utils.eval_utils import positional_deprecated, run_task_tests
 
 import numpy as np
-import transformers
 
 
 @positional_deprecated
@@ -71,7 +70,7 @@ def simple_evaluate(args):
         description_dict=None,
         # decontamination_ngrams_path=args.decontamination_ngrams_path,
         write_out=args.write_out,
-        output_base_path=args.output_base_path,
+        output_base_path=args.output_path,
     )
 
     # add info about the model and few shot config
@@ -142,7 +141,6 @@ def evaluate(
         )
 
     # decontaminate = decontamination_ngrams_path is not None
-
     task_dict_items = [
         (name, task)
         for name, task in task_dict.items()
