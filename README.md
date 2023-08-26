@@ -3,10 +3,33 @@
 
 # Korean LLM Zoo
 
-
 Amidst the recent buzz surrounding ChatGPT's "AI supremacy," a new wave of curiosity has sparked in the realm of open-source language models (LLMs). This surge in interest has given rise to a diverse array of models. However, despite these advancements, the majority of LLM models continue to cater exclusively to the English language. Even the multilingual models that do exist often fall short when it comes to performance in other languages.
 
 Enter the era of polyglot-ko—a time of rising fascination with Korean open-source LLM models. This very intrigue led me to embark on the ko_LLM_zoos project, designed to make a collection of Korean-based open-source LLM models readily accessible. Presently, the project features approximately five models accompanied by inference code. Looking ahead, our roadmap includes plans to incorporate fine-tuning, evaluation, and quantization functions to further enhance the project's offerings.
+
+## Models
+
+Models were selected based on the following criteria.
+
+- Models with more than 50 stars on github
+- Models with easily accessible weights on huggingface
+
+The selected models are followed:
+
+| Models | Backbone | Params(B) | Dataset |
+|:--------:|:--------:|:-------:|:--------------------:|
+|[polyglot-ko](https://github.com/EleutherAI/polyglot)[🤗](https://huggingface.co/EleutherAI/polyglot-ko-12.8b)|GPT-NeoX|12.8|-|
+|[KoAlpaca](https://github.com/Beomi/KoAlpaca)[🤗](https://huggingface.co/beomi/KoAlpaca-Polyglot-12.8B)|polyglot-ko|12.8|네이버 지식인 베스트|
+|[KORani](https://github.com/krafton-ai/KORani)[🤗](https://huggingface.co/KRAFTON/KORani-v3-13B)|LLaMA|13|ShareGPT, KoVicuna|
+|[KoVicuna](https://github.com/melodysdreamj/KoVicuna)[🤗](https://huggingface.co/junelee/ko_vicuna_7b)|LLaMA|7|ShareGPT|
+|[KULLM](https://github.com/nlpai-lab/KULLM)[🤗](https://huggingface.co/nlpai-lab/kullm-polyglot-12.8b-v2)|polyglot-ko|12.8|GPT4ALL, Dolly, Vicuna|
+|[KoGPT](https://github.com/kakaobrain/kogpt)[🤗](https://huggingface.co/kakaobrain/kogpt)|-|6|ryan-dataset|
+
+- All models except KoVicuna have options for the number of parameters / base_model, but only one case was selected and configured as a starting point.
+The models in the table above are set as default, and other sizes can be loaded by entering the huggingface path directly.
+- All models except KoAlpaca were translated from foreign language open datasets into Korean and used for fine-tuning.
+
+---
 
 ### Start - Super Easy way!
 ```bash
@@ -122,30 +145,6 @@ python quantization.py --base_model [model_name] --output_dir [quantized_model_p
 ```
 
 Currently, the quantization code only supports [GPTQ](https://arxiv.org/abs/2210.17323).
-
-## Models
-
-Overview of existing models
----
-Models were selected based on the following criteria
-
-- Models with more than 50 stars on github
-- Models with easily accessible weights on huggingface
-
-The selected models are followed:
-
-| Model | Backbone | Params(B) | Dataset |
-|:--------:|:--------:|:-------:|:--------------------:|
-|[polyglot-ko](https://github.com/EleutherAI/polyglot)[🤗](https://huggingface.co/EleutherAI/polyglot-ko-12.8b)|GPT-NeoX|12.8|-|
-|[KoAlpaca](https://github.com/Beomi/KoAlpaca)[🤗](https://huggingface.co/beomi/KoAlpaca-Polyglot-12.8B)|polyglot-ko|12.8|네이버 지식인 베스트|
-|[KORani](https://github.com/krafton-ai/KORani)[🤗](https://huggingface.co/KRAFTON/KORani-v3-13B)|LLaMA|13|ShareGPT, KoVicuna|
-|[KoVicuna](https://github.com/melodysdreamj/KoVicuna)[🤗](https://huggingface.co/junelee/ko_vicuna_7b)|LLaMA|7|ShareGPT|
-|[KULLM](https://github.com/nlpai-lab/KULLM)[🤗](https://huggingface.co/nlpai-lab/kullm-polyglot-12.8b-v2)|polyglot-ko|12.8|GPT4ALL, Dolly, Vicuna|
-|[KoGPT](https://github.com/kakaobrain/kogpt)[🤗](https://huggingface.co/kakaobrain/kogpt)|-|6|ryan-dataset|
-
-- All models except KoVicuna have options for the number of parameters / base_model, but only one case was selected and configured as a starting point.
-The models in the table above are set as default, and other sizes can be loaded by entering the huggingface path directly.
-- All models except KoAlpaca were translated from foreign language open datasets into Korean and used for fine-tuning.
 
 ## Supported benchmarks
 - [KLUE](https://klue-benchmark.com/)
