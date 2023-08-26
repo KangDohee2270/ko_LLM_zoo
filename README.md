@@ -1,14 +1,21 @@
-# ko_LLM_zoos
+[pics]
 
-## Introduction
+
+# Korean LLM Zoo
+
+
 Amidst the recent buzz surrounding ChatGPT's "AI supremacy," a new wave of curiosity has sparked in the realm of open-source language models (LLMs). This surge in interest has given rise to a diverse array of models. However, despite these advancements, the majority of LLM models continue to cater exclusively to the English language. Even the multilingual models that do exist often fall short when it comes to performance in other languages.
 
 Enter the era of polyglot-ko—a time of rising fascination with Korean open-source LLM models. This very intrigue led me to embark on the ko_LLM_zoos project, designed to make a collection of Korean-based open-source LLM models readily accessible. Presently, the project features approximately five models accompanied by inference code. Looking ahead, our roadmap includes plans to incorporate fine-tuning, evaluation, and quantization functions to further enhance the project's offerings.
 
-## Get Started
-### Install
-Run the following command to install the required packages:
+### Start 
+```bash
+./run_evaluation.sh
+```
 
+
+
+Run the following command to install the required packages:
 ```
 pip install -r requirements.txt
 ```
