@@ -8,17 +8,11 @@ Amidst the recent buzz surrounding ChatGPT's "AI supremacy," a new wave of curio
 
 Enter the era of polyglot-ko—a time of rising fascination with Korean open-source LLM models. This very intrigue led me to embark on the ko_LLM_zoos project, designed to make a collection of Korean-based open-source LLM models readily accessible. Presently, the project features approximately five models accompanied by inference code. Looking ahead, our roadmap includes plans to incorporate fine-tuning, evaluation, and quantization functions to further enhance the project's offerings.
 
-### Start 
+### Start - Super Easy way!
 ```bash
 ./run_evaluation.sh
 ```
 
-
-
-Run the following command to install the required packages:
-```
-pip install -r requirements.txt
-```
 ### Inference
 Run the following command to test the selected model:
 
@@ -57,7 +51,7 @@ options:
 </div>
 </details>
 
-### Finetuning
+### Fine-tuning
 Run the following command to test the selected model:
 
 ```
@@ -130,7 +124,9 @@ python quantization.py --base_model [model_name] --output_dir [quantized_model_p
 Currently, the quantization code only supports [GPTQ](https://arxiv.org/abs/2210.17323).
 
 ## Models
-### Overview of existing models
+
+Overview of existing models
+---
 Models were selected based on the following criteria
 
 - Models with more than 50 stars on github
@@ -138,9 +134,9 @@ Models were selected based on the following criteria
 
 The selected models are followed:
 
-|model name|base_model|params(B)|dataset for finetuning|
+| Model | Backbone | Params(B) | Dataset |
 |:--------:|:--------:|:-------:|:--------------------:|
-|[polyglot-ko](https://github.com/EleutherAI/polyglot)[🤗](https://huggingface.co/EleutherAI/polyglot-ko-12.8b)|-|12.8|-|
+|[polyglot-ko](https://github.com/EleutherAI/polyglot)[🤗](https://huggingface.co/EleutherAI/polyglot-ko-12.8b)|GPT-NeoX|12.8|-|
 |[KoAlpaca](https://github.com/Beomi/KoAlpaca)[🤗](https://huggingface.co/beomi/KoAlpaca-Polyglot-12.8B)|polyglot-ko|12.8|네이버 지식인 베스트|
 |[KORani](https://github.com/krafton-ai/KORani)[🤗](https://huggingface.co/KRAFTON/KORani-v3-13B)|LLaMA|13|ShareGPT, KoVicuna|
 |[KoVicuna](https://github.com/melodysdreamj/KoVicuna)[🤗](https://huggingface.co/junelee/ko_vicuna_7b)|LLaMA|7|ShareGPT|
@@ -162,3 +158,7 @@ The models in the table above are set as default, and other sizes can be loaded 
 - [KoSBi](https://github.com/naver-ai/korean-safety-benchmarks)
 - [Korean legal precedent corpus](https://github.com/lbox-kr/lbox-open)
 - [NSMC](https://github.com/e9t/nsmc)
+
+
+## Contact
+If you have any issue, feel free to contact [email](asrs777@gmail.com).
