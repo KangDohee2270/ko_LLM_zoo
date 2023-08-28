@@ -1,0 +1,1 @@
+python ko_llm_zoo/quantization/gptq.py --base_model polyglot-ko

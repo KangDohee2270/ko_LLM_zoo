@@ -1,0 +1,1 @@
+python ko_llm_zoo/evaluation/evaluation.py --model polyglot-ko --tasks kobest_hellaswag kobest_copa kobest_wic kobest_sentineg kobest_boolq --batch_size auto

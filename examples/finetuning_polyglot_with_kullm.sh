@@ -1,0 +1,1 @@
+python ko_llm_zoo/finetuning/finetuning.py --base_model polyglot-ko --data kullm
