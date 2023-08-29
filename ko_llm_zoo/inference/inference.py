@@ -132,6 +132,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    args.mode = "inference"
     print(args)
 
     llm = LLM(args)

@@ -1,1 +1,1 @@
-python ko_llm_zoo/quantization/gptq.py --base_model polyglot-ko
+python ko_llm_zoo/quantization/gptq.py --model polyglot-ko --save_and_reload

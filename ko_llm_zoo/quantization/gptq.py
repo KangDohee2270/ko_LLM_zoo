@@ -16,7 +16,7 @@ import os
 import torch
 from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 from datasets import Dataset
-from transformers import AutoTokenizer, TextGenerationPipeline
+from transformers import AutoTokenizer, pipeline
 
 model_path_list = {
     "polyglot-ko": "EleutherAI/polyglot-ko-12.8b",
@@ -28,6 +28,12 @@ model_path_list = {
         "pretrained_model_name_or_path": "kakaobrain/kogpt",
         "revision": "KoGPT6B-ryan1.5b-float16",
     },
+}
+
+PROMPT = {
+    "prompt_input": "아래는 작업을 설명하는 명령어와 추가 컨텍스트를 제공하는 입력이 짝을 이루는 예제입니다. 요청을 적절히 완료하는 응답을 작성하세요.\n\n### 명령어:\n{instruction}\n\n### 입력:\n{input}\n\n### 응답:\n",
+    "prompt_no_input": "아래는 작업을 설명하는 명령어입니다. 요청을 적절히 완료하는 응답을 작성하세요.\n\n### 명령어:\n{instruction}\n\n### 응답:\n",
+    "response_split": "### 응답:",
 }
 
 
@@ -50,12 +56,12 @@ def load_data(data_path, tokenizer, n_samples):
         input_ids = []
         attention_mask = []
         for istr, inp, opt in zip(instructions, inputs, outputs):
-            if inp:
-                prompt = f"### 질문:\n{istr}\n### 맥락:\n{inp}\n### 답변:\n"
-                text = prompt + opt
-            else:
-                prompt = f"### 질문:\n{istr}\n### 답변:\n"
-                text = prompt + opt
+            prompt = (
+                PROMPT["prompt_input"].format(input=inp, instruction=istr)
+                if inp
+                else PROMPT["prompt_no_input"].format(instruction=istr)
+            )
+            text = prompt + opt
             if len(tokenizer(prompt)["input_ids"]) >= tokenizer.model_max_length:
                 continue
 
@@ -112,14 +118,14 @@ def main(args):
     if not max_memory:
         max_memory = None
 
-    if args.base_model in model_path_list.keys():
-        model_path = model_path_list[args.base_model]
-    elif not os.path.exists(args.base_model):
+    if args.model in model_path_list.keys():
+        model_path = model_path_list[args.model]
+    elif not os.path.exists(args.model):
         raise FileNotFoundError(
             "The model path is invalid, make sure you are providing the correct path where the model weights are located"
         )
     else:
-        model_path = args.base_model
+        model_path = args.model
 
     ############################# Set desc_act=True : for prevent below error: ##############################
     # torch._C._LinAlgError: linalg.cholesky: The factorization could not be completed
@@ -173,17 +179,17 @@ def main(args):
     end = time.time()
     print(f"quantization took: {end - start: .4f}s")
 
-    if not args.quantized_model_dir:
-        args.quantized_model_dir = args.pretrained_model_dir
+    if not args.output_dir:
+        args.output_dir = args.model
 
     if args.save_and_reload:
-        model.save_quantized(args.quantized_model_dir)
+        model.save_quantized(args.output_dir)
         del model
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         model = AutoGPTQForCausalLM.from_quantized(
-            args.quantized_model_dir,
-            device="cuda:0",
+            args.output_dir,
+            device_map="auto",
             use_triton=args.use_triton,
             max_memory=max_memory,
             inject_fused_mlp=True,
@@ -191,17 +197,23 @@ def main(args):
             trust_remote_code=args.trust_remote_code,
         )
 
-    pipeline_init_kwargs = {"model": model, "tokenizer": tokenizer}
-    if not max_memory:
-        pipeline_init_kwargs["device"] = "cuda:0"
-    pipeline = TextGenerationPipeline(**pipeline_init_kwargs)
+    pipeline_init_kwargs = dict(
+        task="text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        eos_token_id=tokenizer.eos_token_id,
+        pad_token_id=tokenizer.eos_token_id,
+        device_map="auto",
+    )
+
+    gptq_pipeline = pipeline(**pipeline_init_kwargs)
     for example in random.sample(examples, k=min(4, len(examples))):
         print(f"prompt: {example['prompt']}")
         print("-" * 42)
         print(f"golden: {example['output']}")
         print("-" * 42)
         start = time.time()
-        generated_text = pipeline(
+        generated_text = gptq_pipeline(
             example["prompt"],
             return_full_text=False,
             num_beams=1,
@@ -209,7 +221,7 @@ def main(args):
             + 128,  # use this instead of max_new_token to disable UserWarning when integrate with logging
         )[0]["generated_text"]
         end = time.time()
-        print(f"quant: {generated_text}")
+        print(f"Quantized_model: {generated_text}")
         num_new_tokens = len(tokenizer(generated_text)["input_ids"])
         print(
             f"generate {num_new_tokens} tokens using {end-start: .4f}s, {num_new_tokens / (end - start)} tokens/s."
@@ -219,8 +231,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--base_model", type=str)
-    parser.add_argument("--ouput_dir", type=str, default=None)
+    parser.add_argument("--model", type=str)
+    parser.add_argument("--output_dir", type=str, default=None)
     parser.add_argument("--bits", type=int, default=4, choices=[2, 3, 4, 8])
     parser.add_argument(
         "--group_size",

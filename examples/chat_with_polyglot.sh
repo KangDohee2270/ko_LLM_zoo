@@ -1,1 +1,1 @@
-python ko_llm_zoo/inference/inference.py --model polyglot-ko
+python ko_llm_zoo/inference/inference.py --model polyglot-ko --quant nf4

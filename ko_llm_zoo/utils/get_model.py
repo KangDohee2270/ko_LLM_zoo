@@ -35,13 +35,68 @@ class LLM:
         else:
             model_path = {"pretrained_model_name_or_path": args.model}
 
-        # QA format
-        self.input_qa = {
-            "input_with_context": "### 질문: {input}\n\n### 맥락: {context}\n\n### 답변:",
-            "input_wo_context": "### 질문: {input}\n\n### 답변:",
-        }
+        # Tokneizer Definition
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(**model_path)
+        except:
+            # For using LLaMA-based-model
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                **model_path, padding_side="right", use_fast=False, legacy=False
+            )
+        self.args = args
 
         model_kwargs = dict(device_map="auto")
+        #################
+        # LoRA & QLoRA: Methods for efficient finetuning
+
+        # Code Reference
+        # https://github.com/huggingface/peft
+        # https://github.com/nlpai-lab/KULLM
+        #################
+        if args.mode == "finetuning":
+            from peft import (
+                LoraConfig,
+                prepare_model_for_kbit_training,
+                get_peft_model,
+            )
+
+            if args.finetuning_method not in ["lora", "qlora"]:
+                raise Exception(
+                    "Unknown finetuning method. You must choose one of [lora, qlora]"
+                )
+
+            config = LoraConfig(
+                r=args.lora_r,
+                lora_alpha=args.lora_alpha,
+                target_modules=args.lora_target_modules,
+                lora_dropout=args.lora_dropout,
+                bias="none",
+                task_type="CAUSAL_LM",
+            )
+            if args.finetuning_method == "lora":
+                model_kwargs["load_in_8bit"] = True
+
+            elif args.finetuning_method == "qlora":
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_use_double_quant=True,
+                )
+                model_kwargs["quantization_config"] = bnb_config
+
+            self.model = AutoModelForCausalLM.from_pretrained(
+                **model_path, **model_kwargs
+            )
+            self.model = prepare_model_for_kbit_training(self.model)
+            self.model = get_peft_model(self.model, config)
+            self.model.config.use_cache = False
+            if torch.cuda.device_count() > 1:
+                # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
+                self.model.is_parallelizable = True
+                self.model.model_parallel = True
+
+            return
 
         #################
         # Quantization methods for efficient inference
@@ -59,9 +114,12 @@ class LLM:
             from auto_gptq import AutoGPTQForCausalLM
 
             self.model = AutoGPTQForCausalLM.from_quantized(
-                args.gptq_weights, device_map="auto", use_triton=True
+                args.gptq_weights,
+                device_map="auto",
+                use_triton=True,
+                inject_fused_mlp=True,
+                inject_fused_attention=True,
             )
-            self.model.eval()
         else:
             if args.quant != None:
                 if args.quant == "int8":
@@ -84,21 +142,18 @@ class LLM:
                     model_kwargs["quantization_config"] = nf4_config
             else:
                 model_kwargs["torch_dtype"] = torch.float16
-            # Model Definition
+
             self.model = AutoModelForCausalLM.from_pretrained(
                 **model_path, **model_kwargs
             )
-            self.model.eval()
 
-        # Tokneizer Definition
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(**model_path)
-        except:
-            # For using LLaMA-based-model
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                **model_path, padding_side="right", use_fast=False, legacy=False
-            )
-        self.args = args
+        # QA format
+        self.input_qa = {
+            "input_with_context": "### 질문: {input}\n\n### 맥락: {context}\n\n### 답변:",
+            "input_wo_context": "### 질문: {input}\n\n### 답변:",
+        }
+
+        self.model.eval()
 
     ################################# Functions for Inference ################################
     # get_pipe(): Define a pipeline for text generation

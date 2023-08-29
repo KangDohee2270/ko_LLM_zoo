@@ -10,29 +10,12 @@
 import os
 import sys
 from typing import Dict, Optional, Sequence
-
-import torch
-from datasets import load_dataset
 import argparse
 
-from peft import (
-    LoraConfig,
-    prepare_model_for_kbit_training,
-    get_peft_model,
-    set_peft_model_state_dict,
-)
-
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    TrainingArguments,
-    Trainer,
-    DataCollatorForSeq2Seq,
-)
 
 sys.path.append(os.path.abspath(os.path.join("ko_llm_zoo", "..")))
 from ko_llm_zoo.utils.data_formatting import *
+from ko_llm_zoo.utils.get_model import LLM
 
 
 def train(args):
@@ -49,10 +32,24 @@ def train(args):
     if len(args.wandb_log_model) > 0:
         os.environ["WANDB_LOG_MODEL"] = args.wandb_log_model
 
-    # Set which GPU to use
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.use_gpu
-    num_device = torch.cuda.device_count()
-    per_device_train_batch_size = args.batch_size // num_device
+    # Set model to train
+    llm = LLM(args)
+    model, tokenizer = llm.model, llm.tokenizer
+
+    # Load additional packages: to prevent issues with incorrect GPU settings
+    # See https://github.com/pytorch/pytorch/issues/9158
+    import torch
+    from datasets import load_dataset
+
+    from peft import set_peft_model_state_dict
+
+    from transformers import (
+        TrainingArguments,
+        Trainer,
+        DataCollatorForSeq2Seq,
+    )
+
+    per_device_train_batch_size = args.batch_size // torch.cuda.device_count()
     gradient_accumulation_steps = args.batch_size // per_device_train_batch_size
 
     # Set resume from checkpoint
@@ -75,88 +72,6 @@ def train(args):
             set_peft_model_state_dict(model, adapters_weights)
         else:
             print(f"Checkpoint {checkpoint_name} not found")
-
-    # Set model and tokenizer
-
-    model_path_list = {
-        "polyglot-ko": "EleutherAI/polyglot-ko-12.8b",
-        "ko-alpaca": "beomi/KoAlpaca-Polyglot-12.8B",
-        "kullm": "nlpai-lab/kullm-polyglot-12.8b-v2",
-        "korani-v3": "KRAFTON/KORani-v3-13B",
-        "kovicuna": "junelee/ko_vicuna_7b",
-        "kogpt": {
-            "pretrained_model_name_or_path": "kakaobrain/kogpt",
-            "revision": "KoGPT6B-ryan1.5b-float16",
-        },
-    }
-
-    if args.base_model in model_path_list.keys():
-        model_path = model_path_list[args.base_model]
-    elif not os.path.exists(args.base_model):
-        raise FileNotFoundError(
-            "The model path is invalid, make sure you are providing the correct path where the model weights are located"
-        )
-    else:
-        model_path = args.base_model
-    print(model_path)
-
-    if type(model_path) != dict:
-        training_kwargs = dict(
-            pretrained_model_name_or_path=model_path,
-            torch_dtype=torch.float16,
-            device_map="auto",
-        )
-    else:
-        training_kwargs = dict(
-            **model_path,
-            torch_dtype=torch.float16,
-            device_map="auto",
-        )
-    if args.finetuning_method not in ["lora", "qlora"]:
-        raise Exception(
-            "Unknown finetuning method. You must choose one of [lora, qlora]"
-        )
-
-    config = LoraConfig(
-        r=args.lora_r,
-        lora_alpha=args.lora_alpha,
-        target_modules=args.lora_target_modules,
-        lora_dropout=args.lora_dropout,
-        bias="none",
-        task_type="CAUSAL_LM",
-    )
-    if args.finetuning_method == "lora":
-        training_kwargs["load_in_8bit"] = True
-
-    elif args.finetuning_method == "qlora":
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-        )
-        training_kwargs["quantization_config"] = bnb_config
-
-    model = AutoModelForCausalLM.from_pretrained(**training_kwargs)
-    model = prepare_model_for_kbit_training(model)
-    model = get_peft_model(model, config)
-    model.config.use_cache = False
-    if num_device > 1:
-        # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
-        model.is_parallelizable = True
-        model.model_parallel = True
-
-    try:
-        if type(model_path) != dict:
-            tokenizer = AutoTokenizer.from_pretrained(model_path)
-        else:
-            tokenizer = AutoTokenizer.from_pretrained(**model_path)
-    except:
-        # For using LLaMA-based-model
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_path, use_fast=False, legacy=False
-        )
-    tokenizer.padding_side = args.padding_side
 
     # Set dataset (tokenization and train-test split)
     def tokenize(prompt, add_eos_token=True):
@@ -274,9 +189,9 @@ if __name__ == "__main__":
 
     # model/data params
     parser.add_argument(
-        "--base_model",
+        "--model",
         type=str,
-        default="kullm",
+        default="polyglot-ko",
         help="choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path. The default is 'kullm'",
     )
     parser.add_argument(
@@ -404,4 +319,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    args.mode = "finetuning"
     train(args)
