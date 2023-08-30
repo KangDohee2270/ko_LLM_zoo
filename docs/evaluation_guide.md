@@ -1,7 +1,5 @@
 # Evaluation Guide
 
-- The performance for each benchmark for the default models in this repository.
-- All experiments were performed in a zero-shot state.
 - All evaluation codes are based on the [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness/tree/polyglot). They have been modified and minified to fit in this repository.
 
 ## Usage
