@@ -5,6 +5,14 @@ xformers
 protobuf==3.19.5
 sentencepiece
 
+#for evaluation
+scikit-learn
+omegaconf
+sqlitedict
+sacrebleu
+datasets
+scipy
+
 #for inference
 gradio
 
