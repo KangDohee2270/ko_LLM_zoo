@@ -13,6 +13,7 @@ sacrebleu
 datasets
 scipy
 evaluate
+pytablewriter
 
 #for inference
 gradio
