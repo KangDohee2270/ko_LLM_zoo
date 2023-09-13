@@ -36,23 +36,38 @@ The selected models are followed:
 The models in the table above are set as default, and other sizes can be loaded by entering the huggingface path directly.
 - All models except KoAlpaca were translated from foreign language open datasets into Korean and used for fine-tuning.
 
----
 
-### Start - Super Easy way!
+## Start - Super Easy way!
+### 📊 Evaluation
 ```bash
-./run_evaluation.sh
+./examples/eval_polyglot_with_kobest.sh
 ```
 
-### Inference
-Run the following command to test the selected model:
+### 🗨️ Inference
+```bash
+./examples/chat_with_polyglot.sh
+```
+
+### ✏️ Fine-tuning
+
+```bash
+./examples/finetuning_polyglot_with_kullm.sh
+```
+
+
+## Advanced Setup
+### 📊 Evaluation
+N/A
+### 🗨️ Inference
+To test a specific model through inference, use the command below:
 
 ```
-python inference.py --model [model_name]
+python ko_llm_zoo/inference/inference.py --model [model_name]
 ```
-You can chat with the model in the terminal.
+This allows you to chat with the model right in the terminal.
 
 <details>
-<summary>Configuration</summary>
+<summary>Configuration Options</summary>
 <div markdown="1">
 
 ```
@@ -81,11 +96,11 @@ options:
 </div>
 </details>
 
-### Fine-tuning
-Run the following command to test the selected model:
+### ✏️ Fine-tuning
+To fintuning a specific model with another dataset, use the command below:
 
 ```
-python finetuning.py --base_model [model_name] --data [dataset_for_finetuning]
+python ko_llm_zoo/finetuning/finetuning.py --base_model [model_name] --data [dataset_for_finetuning]
 ```
 You can fine-tune the base_model with your own dataset or an open dataset accessible from huggingface.
 
@@ -97,7 +112,7 @@ To create your own dataset, each sample in the dataset must follow the alpaca st
 ```
 
 <details>
-<summary>Configuration</summary>
+<summary>Configuration Options</summary>
 <div markdown="1">
 
 ```
@@ -144,11 +159,11 @@ options:
 </div>
 </details>
 
-### Quantization
+### 📉 Quantization
 Run the following command to apply post-training quantization (PTQ) to the selected model:
 
 ```
-python quantization.py --base_model [model_name] --output_dir [quantized_model_path]
+python ko_llm_zoo/quantization/gptq.py --base_model [model_name] --output_dir [quantized_model_path]
 ```
 
 Currently, the quantization code only supports [GPTQ](https://arxiv.org/abs/2210.17323).
