@@ -57,7 +57,45 @@ The models in the table above are set as default, and other sizes can be loaded 
 
 ## Advanced Setup
 ### 📊 Evaluation
-N/A
+To test a specific model through inference, use the command below:
+
+```
+python ko_llm_zoo/evaluation/evaluation.py --model [model_name] --tasks [task_list]
+```
+
+<details>
+<summary>Configuration Options</summary>
+<div markdown="1">
+
+```
+usage: evaluation.py [-h] --model MODEL
+                     [--tasks {kold_level_a,kold_level_b,klue_sts,klue_ynat,klue_nli,klue_mrc,nsmc,korquad,kobest_boolq,kobest_copa,kobest_wic,kobest_hellaswag,kobest_sentineg,ko_en_translation,en_ko_translation,korunsmile,kohatespeech,kohatespeech_gen_bias,kohatespeech_apeach,kolegal_legalcase,kolegal_civilcase,kolegal_criminalcase,kosbi} [{kold_level_a,kold_level_b,klue_sts,klue_ynat,klue_nli,klue_mrc,nsmc,korquad,kobest_boolq,kobest_copa,kobest_wic,kobest_hellaswag,kobest_sentineg,ko_en_translation,en_ko_translation,korunsmile,kohatespeech,kohatespeech_gen_bias,kohatespeech_apeach,kolegal_legalcase,kolegal_civilcase,kolegal_criminalcase,kosbi} ...]]
+                     [--provide_description] [--num_fewshot NUM_FEWSHOT] [--batch_size BATCH_SIZE] [--max_batch_size MAX_BATCH_SIZE]
+                     [--use_gpu USE_GPU] [--limit LIMIT] [--data_sampling DATA_SAMPLING] [--no_cache]
+                     [--description_dict_path DESCRIPTION_DICT_PATH] [--check_integrity] [--write_out] [--output_path OUTPUT_PATH]
+
+options:
+  -h, --help            show this help message and exit
+  --model MODEL         choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3, kovicuna, kogpt] or use saved path
+  --tasks {kold_level_a,kold_level_b,klue_sts,klue_ynat,klue_nli,klue_mrc,nsmc,korquad,kobest_boolq,kobest_copa,kobest_wic,kobest_hellaswag,kobest_sentineg,ko_en_translation,en_ko_translation,korunsmile,kohatespeech,kohatespeech_gen_bias,kohatespeech_apeach,kolegal_legalcase,kolegal_civilcase,kolegal_criminalcase,kosbi} [{kold_level_a,kold_level_b,klue_sts,klue_ynat,klue_nli,klue_mrc,nsmc,korquad,kobest_boolq,kobest_copa,kobest_wic,kobest_hellaswag,kobest_sentineg,ko_en_translation,en_ko_translation,korunsmile,kohatespeech,kohatespeech_gen_bias,kohatespeech_apeach,kolegal_legalcase,kolegal_civilcase,kolegal_criminalcase,kosbi} ...]
+  --provide_description
+  --num_fewshot NUM_FEWSHOT
+  --batch_size BATCH_SIZE
+  --max_batch_size MAX_BATCH_SIZE
+                        Maximal batch size to try with --batch_size auto
+  --use_gpu USE_GPU     The number of GPUs to use. If you want to use 0 and 1, enter '0, 1'
+  --limit LIMIT         Limit the number of examples per task. If <1, limit is a percentage of the total number of examples.
+  --data_sampling DATA_SAMPLING
+  --no_cache
+  --description_dict_path DESCRIPTION_DICT_PATH
+  --check_integrity
+  --write_out
+  --output_path OUTPUT_PATH
+```
+</div>
+</details>
+
+
 ### 🗨️ Inference
 To test a specific model through inference, use the command below:
 
@@ -116,18 +154,18 @@ To create your own dataset, each sample in the dataset must follow the alpaca st
 <div markdown="1">
 
 ```
-usage: finetuning.py [-h] [--base_model BASE_MODEL] --data_path DATA_PATH [--args.output_dir ARGS.OUTPUT_DIR] [--use_gpu USE_GPU] [--batch_size BATCH_SIZE]
-                     [--num_epochs NUM_EPOCHS] [--learning_rate LEARNING_RATE] [--cutoff_len CUTOFF_LEN] [--resume_from_checkpoint RESUME_FROM_CHECKPOINT]
-                     [--val_set_size VAL_SET_SIZE] [--eval_step EVAL_STEP] [--finetuning_method FINETUNING_METHOD] [--lora_r LORA_R] [--lora_alpha LORA_ALPHA]
-                     [--lora_dropout LORA_DROPOUT] [--lora_target_modules LORA_TARGET_MODULES] [--train_on_inputs TRAIN_ON_INPUTS] [--group_by_length GROUP_BY_LENGTH]
-                     [--wandb_project WANDB_PROJECT] [--wandb_run_name WANDB_RUN_NAME]
+usage: finetuning.py [-h] [--model MODEL] --data DATA [--output_dir OUTPUT_DIR] [--use_gpu USE_GPU] [--batch_size BATCH_SIZE]
+                     [--num_epochs NUM_EPOCHS] [--learning_rate LEARNING_RATE] [--cutoff_len CUTOFF_LEN]
+                     [--resume_from_checkpoint RESUME_FROM_CHECKPOINT] [--val_set_size VAL_SET_SIZE] [--eval_steps EVAL_STEPS]
+                     [--finetuning_method FINETUNING_METHOD] [--lora_r LORA_R] [--lora_alpha LORA_ALPHA] [--lora_dropout LORA_DROPOUT]
+                     [--lora_target_modules LORA_TARGET_MODULES] [--train_on_inputs TRAIN_ON_INPUTS] [--group_by_length GROUP_BY_LENGTH]
+                     [--padding_side PADDING_SIDE] [--wandb_project WANDB_PROJECT] [--wandb_run_name WANDB_RUN_NAME]
+                     [--wandb_log_model WANDB_LOG_MODEL] [--wandb_watch WANDB_WATCH]
 
 options:
   -h, --help            show this help message and exit
-  --base_model BASE_MODEL
-                        choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3, kovicuna, kogpt] or use saved path. The default is 'kullm'
-  --data_path DATA_PATH
-                        set your dataset path. the dataset must contain the keys: instruction, input and output
+  --model MODEL         choose one model from [polygolot-ko, ko-alpaca, kullm, korani-v3] or use saved path. The default is 'kullm'
+  --data DATA           set your dataset path. the dataset must contain the keys: instruction, input and output
   --output_dir OUTPUT_DIR
                         save path for trained model weights
   --use_gpu USE_GPU     The number of GPUs to use. If you want to use 0 and 1, enter '0, 1'
@@ -139,7 +177,7 @@ options:
   --resume_from_checkpoint RESUME_FROM_CHECKPOINT
                         Either training checkpoint or final adapter
   --val_set_size VAL_SET_SIZE
-  --eval_step EVAL_STEP
+  --eval_steps EVAL_STEPS
                         Step unit to perform evaluation and checkpoint storage
   --finetuning_method FINETUNING_METHOD
                         Finetuning method. choose one of [lora, qlora]
@@ -150,10 +188,16 @@ options:
   --train_on_inputs TRAIN_ON_INPUTS
                         If False, masks out inputs in loss
   --group_by_length GROUP_BY_LENGTH
-                        Whether or not to group together samples of roughly the same length in the training dataset. If True, faster, but produces an odd training loss curve
+                        Whether or not to group together samples of roughly the same length in the training dataset. If True, faster, but
+                        produces an odd training loss curve
+  --padding_side PADDING_SIDE
   --wandb_project WANDB_PROJECT
   --wandb_run_name WANDB_RUN_NAME
-                        Choose one of [false, gradients, all]. 'all' option may occur error: RuntimeError: 'histogram_cpu' not implemented for 'Char'
+  --wandb_log_model WANDB_LOG_MODEL
+                        options: false | true
+  --wandb_watch WANDB_WATCH
+                        Choose one of [false, gradients, all]. 'all' option may occur error: RuntimeError: 'histogram_cpu' not implemented
+                        for 'Char'
 ```
 
 </div>
