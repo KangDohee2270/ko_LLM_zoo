@@ -12,6 +12,7 @@ sqlitedict
 sacrebleu
 datasets
 scipy
+evaluate
 
 #for inference
 gradio
