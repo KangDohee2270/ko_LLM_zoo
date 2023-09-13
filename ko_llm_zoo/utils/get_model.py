@@ -46,6 +46,17 @@ class LLM:
         self.args = args
 
         model_kwargs = dict(device_map="auto")
+
+        # for evaluation - Set to the default model settings.
+        if "mode" not in self.args:
+            model_kwargs["torch_dtype"] = torch.float16
+
+            self.model = AutoModelForCausalLM.from_pretrained(
+                **model_path, **model_kwargs
+            )
+
+            return
+        
         #################
         # LoRA & QLoRA: Methods for efficient finetuning
 
