@@ -28,11 +28,7 @@ def print_qa(text: str, stream=False):
 
 def gradio(llm: LLM, stream: bool):
     with gr.Blocks() as demo:
-        gr.Markdown(
-            """
-                # Demo-KoLLM
-            """
-        )
+        gr.Markdown(f" # Demo with Ko-LLM-zoo\nselected model: {llm.args.model}")
 
         chatbot = gr.Chatbot()
         msg = gr.Textbox(label="메세지를 입력하세요")
@@ -132,6 +128,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    args.use_interface = args.use_gradio
     args.mode = "inference"
     print(args)
 
