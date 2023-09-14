@@ -56,7 +56,7 @@ class LLM:
             )
 
             return
-        
+
         #################
         # LoRA & QLoRA: Methods for efficient finetuning
 
@@ -187,7 +187,7 @@ class LLM:
             repetition_penalty=1.1,
         )
         if self.args.stream:
-            if self.args.use_gradio:
+            if self.args.use_interface:
                 self.streamer = TextIteratorStreamer(self.tokenizer, skip_prompt=True)
             else:
                 self.streamer = TextStreamer(self.tokenizer, skip_prompt=True)
