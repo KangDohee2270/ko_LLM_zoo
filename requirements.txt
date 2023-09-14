@@ -17,6 +17,7 @@ pytablewriter
 
 #for inference
 gradio
+streamlit
 
 #for finetuning
 datasets
