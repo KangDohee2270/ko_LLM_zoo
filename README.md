@@ -226,4 +226,4 @@ Currently, the quantization code only supports [GPTQ](https://arxiv.org/abs/2210
 
 
 ## Contact
-If you have any issue, feel free to contact [email](asrs777@gmail.com).
+If you have any issue, feel free to contact [email](mailto:asrs777@gmail.com).
