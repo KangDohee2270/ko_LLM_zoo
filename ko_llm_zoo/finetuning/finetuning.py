@@ -7,11 +7,10 @@
 
 #################
 
+import argparse
 import os
 import sys
 from typing import Dict, Optional, Sequence
-import argparse
-
 
 sys.path.append(os.path.abspath(os.path.join("ko_llm_zoo", "..")))
 from ko_llm_zoo.utils.data_formatting import *
@@ -35,22 +34,19 @@ def train(args):
     # Set model to train
     llm = LLM(args)
     model, tokenizer = llm.model, llm.tokenizer
+    model.resize_token_embeddings(len(tokenizer))
 
     # Load additional packages: to prevent issues with incorrect GPU settings
     # See https://github.com/pytorch/pytorch/issues/9158
     import torch
     from datasets import load_dataset
-
     from peft import set_peft_model_state_dict
-
-    from transformers import (
-        TrainingArguments,
-        Trainer,
-        DataCollatorForSeq2Seq,
-    )
+    from transformers import DataCollatorForSeq2Seq, Trainer, TrainingArguments
 
     per_device_train_batch_size = args.batch_size // torch.cuda.device_count()
-    gradient_accumulation_steps = args.batch_size // per_device_train_batch_size
+    # NOTE: The number of accumulation step have to be equal to the (distributed) batch size
+    gradient_accumulation_steps = per_device_train_batch_size
+    # gradient_accumulation_steps = args.batch_size // per_device_train_batch_size
 
     # Set resume from checkpoint
     if args.resume_from_checkpoint:
